@@ -1,0 +1,6 @@
+.git
+.cache
+bin
+coverage.out
+web/node_modules
+web/dist

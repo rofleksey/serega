@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: Serega Shared Board API
+  version: 1.0.0
+  description: |
+    One shared kanban board for every authenticated account. Accounts are provisioned
+    with the server CLI. Browser mutations, including login, require X-CSRF-Token.
+    An expired browser-session cookie returns 419 with code session_expired.
+    Updates and deletes require the last observed version; concurrent changes return
+    409 card_conflict. There are no private boards, roles, or per-user ownership rules.
+servers:
+  - url: /api
+security:
+  - cookieAuth: []
+paths:
+  /v1/auth/csrf:
+    get:
+      operationId: getCsrfToken
+      security: []
+      responses:
+        '200':
+          description: CSRF token for browser mutations.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CsrfToken' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/auth/login:
+    post:
+      operationId: login
+      security: []
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '204': { description: Session created. }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      responses:
+        '204': { description: Session destroyed. }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/auth/me:
+    get:
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current account.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/cards:
+    get:
+      operationId: listCards
+      responses:
+        '200':
+          description: All cards ordered by creation time, newest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CardList' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createCard
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCardRequest' }
+      responses:
+        '201':
+          description: Card created in To do.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/cards/{cardId}:
+    patch:
+      operationId: updateCard
+      description: Replace the editable fields only if the version still matches.
+      parameters:
+        - { $ref: '#/components/parameters/CardId' }
+        - { $ref: '#/components/parameters/CsrfHeader' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCardRequest' }
+      responses:
+        '200':
+          description: Updated card with incremented version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deleteCard
+      parameters:
+        - { $ref: '#/components/parameters/CardId' }
+        - { $ref: '#/components/parameters/CsrfHeader' }
+        - name: version
+          in: query
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '204': { description: Card deleted. }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: serega_session
+  parameters:
+    CsrfHeader:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: { type: string }
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      schema: { type: string, format: uuid, x-go-type: string }
+  responses:
+    Error:
+      description: Structured API error, including 400 validation, 401 unauthenticated, 403 CSRF, 404 missing card, 419 expired session, or 500 server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Card changed since the supplied version. Refresh the board before retrying.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    CsrfToken:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 64 }
+        password: { type: string, minLength: 1 }
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, username]
+      properties:
+        id: { type: string, format: uuid, x-go-type: string }
+        username: { type: string }
+    CardStatus:
+      type: string
+      enum: [todo, doing, done]
+    Card:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, status, version, createdBy, updatedBy, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid, x-go-type: string }
+        title: { type: string }
+        description: { type: string }
+        status: { $ref: '#/components/schemas/CardStatus' }
+        version: { type: integer, format: int64, minimum: 1 }
+        createdBy: { $ref: '#/components/schemas/User' }
+        updatedBy: { $ref: '#/components/schemas/User' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CardList:
+      type: object
+      additionalProperties: false
+      required: [cards]
+      properties:
+        cards:
+          type: array
+          items: { $ref: '#/components/schemas/Card' }
+    CreateCardRequest:
+      type: object
+      additionalProperties: false
+      required: [title, description]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+    UpdateCardRequest:
+      type: object
+      additionalProperties: false
+      required: [title, description, status, version]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        status: { $ref: '#/components/schemas/CardStatus' }
+        version: { type: integer, format: int64, minimum: 1 }
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, message]
+      properties:
+        field: { type: string }
+        message: { type: string }
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+            fields:
+              type: array
+              items: { $ref: '#/components/schemas/FieldError' }

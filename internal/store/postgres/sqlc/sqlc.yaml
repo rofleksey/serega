@@ -1,0 +1,64 @@
+version: "2"
+
+# Goose remains the sole owner of schema migration. sqlc reads the same ordered
+# migration directory only to understand the final PostgreSQL schema.
+sql:
+  - engine: "postgresql"
+    schema: "../../../database/postgres/migrations"
+    queries: "query"
+    gen:
+      go:
+        package: "sqlc"
+        out: "generated"
+        sql_package: "pgx/v5"
+        emit_empty_slices: true
+        emit_interface: true
+        overrides:
+          - db_type: "uuid"
+            go_type: "string"
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              type: "string"
+              pointer: true
+          - db_type: "text"
+            nullable: true
+            go_type:
+              type: "string"
+              pointer: true
+          - db_type: "timestamp"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "timestamp"
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+          - db_type: "json"
+            go_type:
+              type: "[]byte"
+          - db_type: "json"
+            nullable: true
+            go_type:
+              type: "[]byte"
+          - db_type: "jsonb"
+            go_type:
+              type: "[]byte"
+          - db_type: "jsonb"
+            nullable: true
+            go_type:
+              type: "[]byte"
+
+# Generated files are never edited. Status stays string-backed through a CHECK constraint.
