@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,7 +17,7 @@ func RateLimit(limit int, window time.Duration) func(http.Handler) http.Handler 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if allowed, retryAfter := limiter.Allow(ClientIP(r)); !allowed {
-				seconds := max(int(retryAfter.Seconds()), 1)
+				seconds := max(int(math.Ceil(retryAfter.Seconds())), 1)
 				w.Header().Set("Retry-After", strconv.Itoa(seconds))
 				writeError(w, http.StatusTooManyRequests, "rate_limited", "too many requests; try again later", RequestIDFrom(r.Context()))
 

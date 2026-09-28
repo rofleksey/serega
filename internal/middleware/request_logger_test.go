@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/rofleksey/serega/internal/observability"
 )
 
@@ -48,4 +50,37 @@ func TestStatusWriterSupportsHijacking(t *testing.T) {
 	_ = connection.Close()
 
 	underlying.closePeer()
+}
+
+func TestRequestLoggerOmitsRawPaths(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		path  string
+		route string
+	}{
+		{name: "matched", path: "/items/private-resource?token=private-query", route: "/items/{itemID}"},
+		{name: "unmatched", path: "/unknown/private-resource?token=private-query", route: "unmatched"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var output bytes.Buffer
+
+			router := chi.NewRouter()
+			router.Use(RequestLogger(observability.NewEventRuntime(observability.NewLogger("json", &output)), nil))
+			router.Get("/items/{itemID}", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			})
+
+			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, test.path, nil)
+			router.ServeHTTP(httptest.NewRecorder(), request)
+
+			event := output.String()
+			if !strings.Contains(event, `"http.route":"`+test.route+`"`) {
+				t.Fatalf("event omitted normalized route %q: %s", test.route, event)
+			}
+
+			if strings.Contains(event, "private-resource") || strings.Contains(event, "private-query") {
+				t.Fatalf("event contains private URL values: %s", event)
+			}
+		})
+	}
 }
