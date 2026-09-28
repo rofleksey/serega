@@ -1,149 +1,104 @@
 # Serega agent guide
 
-Serega is a working reference application: one shared Kanban board, multiple
-independently authenticated users, and a Go executable serving its embedded
-React application. It was created by cloning Akio Main and adapting the
-checkout. Preserve the demonstrated engineering boundaries when molding this
-template into another product.
+Serega is a standalone project template with a working shared Kanban board:
+independently authenticated users, PostgreSQL persistence, and a Go executable
+serving an embedded React application. Every authenticated user can change every
+card; identity provides authentication and attribution, not tenancy.
 
-Read README.md for commands, ARCHITECTURE.md for ownership, and
-docs/AKIO_PATTERNS.md for concrete upstream examples and adaptation rationale.
-Subtree AGENTS.md files add focused instructions. Generated output directories
-deliberately have no handwritten instructions.
+## Where guidance lives
 
-## Scope and product policy
+[README.md](README.md) owns setup, commands, and configuration. This guide owns
+repository-wide rules; read the scoped guides along the path you are editing.
+Child guides add local constraints without restating their ancestors. Add a new
+one only when a subtree needs substantial, distinct guidance.
 
-- Complete requested changes without introducing unrelated platforms, workers,
-  frameworks, role systems, or infrastructure.
-- Every authenticated user can read and change every card. User identity
-  provides authentication and attribution; it is not a tenant boundary.
-- Keep useful rationale comments. Delete obsolete files and dependencies when
-  replacing features; do not preserve dead code as an example.
-- Preserve practical usability, keyboard access, labels, and useful
-  pending/error/empty states. Expand accessibility or internationalization when
-  the task calls for it.
-- Do not mutate production unless requested. Ordinary authorized development,
-  generation, verification, and fixes do not need extra approval ceremonies.
-- Future products can change domain scope deliberately. Update the affected
-  architecture and subtree instructions along with changed policy.
+| Area | Guide |
+| --- | --- |
+| Go package ownership and runtime | [internal/AGENTS.md](internal/AGENTS.md) |
+| HTTP contract | [api/AGENTS.md](api/AGENTS.md) |
+| Frontend layers and interaction | [web/AGENTS.md](web/AGENTS.md) |
+| Integration testing | [test/AGENTS.md](test/AGENTS.md) |
+| Containers and telemetry deployment | [deploy/AGENTS.md](deploy/AGENTS.md) |
+| CI | [.github/workflows/AGENTS.md](.github/workflows/AGENTS.md) |
 
-## Dependency direction and ownership
+## Architecture and shared conventions
 
-Runtime calls follow cmd → cli → app → handler → usecase → store/postgres.
-Use cases declare consumer-owned ports; they do not import the concrete store.
-The app package constructs and connects concrete dependencies.
+Runtime calls follow `cmd → cli → app → handler → usecase → store/postgres`.
+Use cases declare consumer-owned ports; they never import concrete stores.
+`app` constructs and connects dependencies. CLI commands also invoke services
+through `app`, without going through HTTP handlers.
 
-- Handlers and CLI commands call application services, never store/database
-  methods, including through disguised persistence interfaces.
-- Use cases own validation and decisions. Stores own SQL, row mapping,
+- Keep `cmd/main.go` limited to CLI delegation, process output, and exit status.
+  Handlers and commands must not bypass services, even through a store-shaped
+  interface. Services own validation/decisions; stores own SQL, row mapping,
   transactions, and defensive constraints.
-- Generated HTTP and SQL models stay at their boundaries and are explicitly
-  converted to entity/use-case values.
-- Shared domain values and stable vocabulary belong in internal/entity.
-- Inbound protocol handling belongs in handler or a deliberately introduced
-  transport package. Adapter means a concrete outbound port implementation.
-- Avoid pass-through orchestration layers around transport serialization.
-
-## Go structure and libraries
-
-- Keep one concrete handler per source file, and one middleware constructor or
-  value per source file with focused behavioral coverage.
-- Shared exported contracts belong in types.go or descriptive types_<domain>.go.
-  Private types/helpers stay beside their behavior.
-- helper.go is for genuinely shared mechanics, not unrelated leftovers.
-- Stable statuses, actions, telemetry keys, and metric names belong in entity;
-  prose, HTTP headers, SQL fragments, and local literals normally stay local.
-- Preserve one HTTP error-envelope boundary and consistent domain-error mapping.
-  Wrap errors with context and use errors.Is/As.
-- Use contexts for outbound work and explicit lifecycle ownership.
-- Reuse maintained infrastructure libraries. Application logging uses slog;
-  unolog owns wide-event lifecycle; the existing meg bridges own generic
-  redaction, operation, rate-limit, and metrics mechanics.
-- Do not invent custom AST checks or cosmetic linters. Use the standard
-  approved toolchain and document limitations.
-
-## Source of truth and generation
-
-- api/openapi.yaml owns HTTP shapes.
-- internal/database/postgres/migrations owns Goose schema versions.
-- internal/store/postgres/sqlc/query owns static SQL.
-- Edit sources and regenerate; never patch generated Go or TypeScript.
-- Do not put handwritten helpers or docs inside internal/api/generated or
-  frontend dist. SQLC source/configuration lives in sqlc/, and its ignored
-  output lives in the separate sqlc/generated/ directory.
-- Build Vite assets before compiling Go. Production assets are embedded and
-  immutable; do not introduce a mutable runtime asset directory.
-- OpenAPI supports generation and validation. Do not expose documentation or
-  raw schema endpoints unless the product requires them.
-
-## Persistence, accounts, and collaboration
-
-- Use SQLC for fixed-shape application queries. Handwritten dynamic SQL requires
-  a documented necessity, constrained identifiers, and parameterized values.
-- Compare expected card versions atomically in SQL. Stale updates and deletes
-  must return a conflict rather than overwrite another person's work.
-- Account creation and password/session changes affect the intended user.
-  Never restore sole-administrator replacement or global session deletion.
+- Explicitly convert generated HTTP/SQL models at their boundaries. Shared
+  domain values, statuses, actions, and telemetry vocabulary belong in
+  `internal/entity`; local prose, headers, SQL, and UI text stay local.
+- Inbound protocol work belongs in handlers or a transport package; an adapter
+  implements an outbound port. Add layers only when they own a real responsibility.
+- Keep one concrete handler and one middleware constructor/value per source
+  file. Put shared exported contracts in `types.go` or `types_<domain>.go`, and
+  private types/helpers beside their behavior. Reserve `helper.go` for shared
+  mechanics within that package.
+- Wrap errors with context and use `errors.Is/As`. Keep one HTTP error-envelope
+  boundary and consistent domain-error mapping. Propagate contexts for outbound
+  work and give resources explicit lifecycle owners.
+- Reuse maintained infrastructure libraries and existing helpers; application
+  logging uses `slog`. Avoid custom CRUD frameworks, global service locators,
+  utility frameworks, AST checks, and cosmetic linters.
 - Keep credentials, hashes, cookies, tokens, unrestricted bodies, and connection
-  strings out of responses, telemetry, fixtures, and committed configuration.
-- Preserve secure cookie defaults, persistent hashed sessions, CSRF, request
-  limits, and trusted-proxy handling. Local HTTP allowances must be explicit.
+  strings out of public responses, telemetry, fixtures, and committed config.
+- Preserve usable keyboard controls, labels, and pending/error/empty states.
+  Expand accessibility or internationalization when the task calls for it.
+- Keep useful rationale comments; remove obsolete code and dependencies when
+  replacing features. Do not add unrelated platforms or infrastructure.
+- Do not mutate production unless requested. Authorized development, generation,
+  verification, and fixes need no extra approval steps.
 
-## Frontend
+## Sources and generated output
 
-Retain React/TypeScript, MUI, TanStack Query, React Hook Form, Zod, and the
-generated OpenAPI client unless the requested task changes the stack.
+| Source of truth | Generated output |
+| --- | --- |
+| `api/openapi.yaml` | `internal/api/generated/*.gen.go`, `web/src/shared/api/generated.ts` |
+| `internal/database/postgres/migrations` + `internal/store/postgres/sqlc/query` | `internal/store/postgres/sqlc/generated/` |
+| `web/src` and frontend configuration | `internal/frontend/dist/` |
 
-- Layer direction: app → pages → widgets → features → entities → shared.
-  Lower layers never import higher layers; cross-folder imports use aliases.
-- Query owns server state; features own form state. Invalidate affected queries
-  after successful mutations and clear private query state on logout/expiry.
-- Keep drafts on recoverable errors and conflicts. A refreshed list does not
-  grant permission to overwrite a user's open form.
-- Five-second polling is sufficient for this board. Introduce push transports
-  only for a requirement that warrants their lifecycle complexity.
-- Server validation remains authoritative; frontend schemas improve feedback.
+Edit sources and regenerate with `make generate`; never patch generated files.
+Keep generated output ignored and free of handwritten helpers or guidance.
+SQLC configuration and generation directives remain in its parent `sqlc/` directory.
+Go embeds the versioned Goose migrations and the Vite production assets; build
+the frontend before compiling Go. The executable/image is the deployable unit,
+with immutable assets and no production Vite process or mutable asset directory.
 
-## Observability
+## Verification
 
-- Emit one rich completion event per owned operation using the existing unolog
-  lifecycle and redacting slog sink.
-- Start/finish at the owning boundary and enrich via context. One goroutine owns
-  completion; independent concurrent work gets its own operation.
-- Keep standalone logs for process lifecycle and exceptional diagnostics.
-- Metrics use OpenTelemetry/OTLP, bounded labels, bounded timeouts/queues, and a
-  bounded shutdown flush. Telemetry failure must not fail application work.
-- Never label metrics with usernames, card IDs, raw dynamic paths, or errors.
-  Never record card titles/descriptions or authentication material.
+Use the actual Makefile and `web/package.json` targets. The normal code-change
+gate is generation, formatting, explicit lint, vet, standalone staticcheck,
+Go/frontend tests, and a production build. See the README for commands.
 
-## Verification and completion
-
-Use actual Makefile and web/package.json targets. The complete normal gate is
-generation, formatting, explicit lint, vet, standalone staticcheck, Go/frontend
-tests, and a production build.
-
-- Keep golangci-lint v2 with linters.default: none, all enabled linters explicitly
-  listed, and gofmt/goimports formatters. Preserve the approved list and finish
-  without findings; exclusions must stay narrow and explained.
-- Keep meaningful unit tests beside packages/features. Do not create tests that
-  merely duplicate trivial implementation.
-- test/ is reserved for integration tests. Application tests run the built
-  executable through public boundaries; PostgreSQL tests verify schema/store
-  contracts directly.
-- Use disposable isolated infrastructure and Testcontainers with pinned images,
-  bounded waits, and teardown. Never use production to verify changes.
+- Keep golangci-lint v2 with `linters.default: none`, explicitly enabled linters,
+  and gofmt/goimports. Preserve the configured suite; keep exclusions narrow and
+  explained, and finish without findings.
+- Keep meaningful unit tests beside the behavior they cover; avoid tests that
+  duplicate trivial implementation. `test/` owns integration coverage.
 - Run integration coverage for authentication, persistence, migration,
-  concurrency, runtime, and deployment changes.
-- A clean checkout must regenerate and build. Do not rely on local ignored
-  artifacts. Report unavailable tools/infrastructure precisely; skipped is not
-  passed.
-- Inspect the diff before committing; exclude secrets, binaries, node_modules,
+  concurrency, runtime, and deployment changes using isolated disposable
+  infrastructure. Never use production to verify changes.
+- A clean checkout must regenerate and build without copied ignored artifacts.
+  Report unavailable tools/infrastructure accurately; skipped checks are not passes.
+- For documentation-only edits, check accuracy, local links, stale references,
+  and the diff; runtime suites are unnecessary unless behavior also changes.
+- Inspect the diff before committing. Exclude secrets, binaries, `node_modules`,
   generated output, and unrelated edits.
 
 ## Adapting into the next project
 
 Follow a complete vertical slice: contract → entity → use-case port/service →
 schema/query → store mapping → handler → client/feature/page → meaningful tests.
-Rename module imports, executable/environment/cookie/browser-event names, image
-names, and docs consistently. Remove unused domain vocabulary. Retain a small
-working example of each engineering mechanism the new product still uses.
+Keep a small working example of each mechanism the new product still uses.
+
+Rename module/import prefixes, package/executable names, environment variables,
+cookies, browser events, metrics, images, and product copy consistently. Replace
+domain policy deliberately, remove unused vocabulary/mechanisms, and update the
+contracts, schemas, tests, and affected guides together.

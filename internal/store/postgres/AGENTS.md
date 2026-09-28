@@ -1,22 +1,34 @@
-# PostgreSQL adapter
+# PostgreSQL adapter and queries
 
-Preserve Akio's behavior-owned account/card files, explicit conversions, and
-small shared construction/types files.
+Keep behavior-specific account/card files with explicit row conversions.
+`store.go` binds queries to the pool or the transaction carried by its private
+context key. Nested `WithinTransaction` calls reuse that transaction; all
+participating operations must receive the callback's context. Roll back early
+exits and commit only after the complete operation succeeds.
 
-- Static SQL lives in sqlc/query. Call generated bindings and map rows explicitly.
-- Keep generated parameter/row types inside this boundary.
-- Bind generated queries to transactions; roll back on early exits and commit
-  only after the full operation succeeds.
-- Compare expected version and increment it in the SQL mutation itself.
-  Read-then-unconditional-write is not concurrency protection.
-- Distinguish absent card from stale existing version without exposing pgx errors.
-- Actor IDs come from authenticated service input. Do not add per-user filters
-  to the shared board.
-- User creation never deletes others. Password/session changes affect only the
-  intended user; never restore sole-administrator replacement.
-- Constraints defend service rules; the adapter must not be their only owner.
-- Parameterize runtime values. Handwritten dynamic SQL requires documented
-  necessity and constrained identifiers.
-- Private mapping helpers stay beside behavior; helper.go is genuinely shared.
-- Real transaction/schema/concurrency guarantees belong in PostgreSQL integration
-  tests rather than mocks that merely repeat pgx method calls.
+## Card concurrency
+
+- Lock the card row while deciding missing versus stale, then perform the
+  version-predicated mutation in the same transaction. An unconditional write
+  after a version read does not protect against concurrent changes.
+- Updates atomically increment version and persist actor/time; deletion also
+  compares expected version. Return distinct domain missing/conflict errors.
+- Read persisted values in the transaction or use `RETURNING`; do not guess
+  timestamps or versions in Go. Attribution comes from service input.
+- Verify transactions, schema constraints, and concurrency against real
+  PostgreSQL rather than mocks that merely repeat driver method calls.
+
+## SQLC sources
+
+- Use SQLC for fixed-shape queries in `sqlc/query/auth.sql` and `cards.sql`.
+  Dynamic SQL needs documented necessity, constrained identifiers, and
+  parameterized runtime values.
+- Choose accurate query cardinality/result shapes. `SELECT *` means schema
+  changes also change the generated row contract. Order lists deterministically.
+- Account lookup is identity-scoped; board listing is shared across users.
+- `sqlc/sqlc.yaml` reads the Goose migrations and uses pgx/v5 with explicit UUID,
+  nullable, and time mappings. Preserve NULL/empty distinctions during mapping;
+  adjust adapter conversions when these contracts change.
+- Index changes belong with migrations. Regenerate and run
+  `go tool sqlc vet -f internal/store/postgres/sqlc/sqlc.yaml` from the repo root
+  after query/config changes.

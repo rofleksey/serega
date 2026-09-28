@@ -1,13 +1,25 @@
-# PostgreSQL lifecycle
+# PostgreSQL lifecycle and migrations
 
-Goose owns migrations. SQLC reads the migration directory to infer query types
-but does not execute or own schema changes.
+- `migrate_pgx.go` uses an instance-based Goose provider with embedded migration
+  files. Keep provider state local; do not mutate a global migration filesystem
+  or introduce another schema versioning system.
+- Serving checks schema readiness read-only. `readiness.go` deliberately queries
+  Goose metadata directly: Goose version helpers can initialize tables. This
+  infrastructure exception does not permit handwritten application queries.
+- Close partially opened connections and honor cancellation.
 
-- Keep migration embedding and explicit migrate-up entry points here.
-- Serving must not migrate as a side effect.
-- Reuse maintained Goose/pgx lifecycle; do not add another version table/system.
-- Close partially opened pools and honor cancellation.
-- Never log the database URL.
-- Verify migration application/reapplication and schema guarantees in the
-  isolated PostgreSQL integration suite.
-- Read migrations/AGENTS.md before changing schema history.
+## Schema changes
+
+- Follow the numbered filenames and Goose Up/Down/transaction conventions in
+  `migrations/`. After deployment, append migrations; a fresh-project reset must
+  deliberately account for any existing data and deployments.
+- Defend unique identities, allowed statuses, required attribution, positive
+  card versions, and referential integrity with database constraints.
+- Keep the sessions schema compatible with SCS storage and the card schema
+  suitable for atomic expected-version updates/deletes.
+- Add indexes for real query needs. Consider upgrade and rollback behavior;
+  destructive down migrations are not ordinary deployment steps.
+- Do not seed demo credentials/cards or environment-specific values.
+- Verify migration application/reapplication and schema/store guarantees in the
+  isolated PostgreSQL integration suite, including SQLC generation/vet after
+  schema changes.

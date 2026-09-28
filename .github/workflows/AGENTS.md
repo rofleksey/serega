@@ -1,17 +1,14 @@
-# CI for a reusable public template
+# CI workflows
 
-Preserve reproducible Akio checks while removing dependencies on its product.
-
-- Work from a clean checkout: install locked frontend dependencies, generate
-  Go/SQLC/TypeScript/assets, then run explicit checks/tests/build.
-- Keep Go/Node/linter versions aligned with repository declarations.
-- Pin third-party actions to reviewed commits and grant minimum permissions.
-- Include meaningful unit, race, and disposable integration coverage where the
-  workflow supports their infrastructure.
-- No private Akio-Agent checkout, protocol secret, production credential, or
-  external account is required to validate this template.
-- Keep image publication/deployment separate from verification and deliberate.
-  Do not make a new template consumer publish to a previous owner's registry.
-- Never mask failed checks with broad continue-on-error or excluded packages.
-- Generated files remain ignored; validate source regeneration rather than
-  committing artifacts to satisfy CI.
+- Read Go/Node versions from repository declarations and keep the linter version
+  aligned with local tooling. Install frontend dependencies with `npm ci`.
+- Pin third-party actions to reviewed commits, use minimal permissions, and
+  disable persisted checkout credentials. Keep job timeouts and concurrency
+  cancellation explicit.
+- CI must validate this repository without private peer checkouts or external
+  accounts. Integration jobs need a working Docker daemon for Testcontainers.
+- Preserve explicit integration-tag linting and race coverage in addition to
+  the root verification gate. Never mask failures with broad `continue-on-error`
+  settings or package exclusions.
+- Publishing requires a separately configured destination and workflow; routine
+  verification must not push images or deploy.

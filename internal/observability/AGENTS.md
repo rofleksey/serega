@@ -1,20 +1,20 @@
-# Library bridges and telemetry
+# Observability bridges
 
-Keep this a narrow bridge from Serega's domain vocabulary to meg, unolog, slog,
-and OpenTelemetry, following Akio's infrastructure boundary.
+`logger.go` bridges `meg/logging` and `meg/operation` to redacting slog and
+unolog. `metrics.go` uses OpenTelemetry through `meg/otelmetrics`. Keep generic
+redaction, event lifecycle, and export mechanics in those libraries.
 
-- Application logging uses the redacting slog logger.
-- unolog via the existing operation bridge owns event lifecycle. Do not create
-  a parallel field accumulator, exporter, or lifecycle registry.
-- Start at the operation boundary, propagate context, safely enrich, and finish
-  once from one goroutine. Independent work owns separate operations.
-- Expected decisions enrich a completion event; standalone logs are for process
-  lifecycle or exceptional diagnostics.
-- Never record card titles/descriptions, passwords/hashes, cookies/tokens,
-  headers, connection strings, or unrestricted payloads.
-- Metric vocabulary lives in entity. Labels must be bounded: route patterns,
-  method, status, outcome; never user/card IDs or raw errors.
-- Keep active/completed accounting balanced and initialization/export fail-open.
-  Shutdown flush, queues, and timeouts must be bounded.
-- Use library in-memory test sinks for precise assertions. External tests verify
-  safe emitted logs, correlation, OTLP delivery/failure, and shutdown behavior.
+- Start one rich completion event at the owning boundary, enrich through
+  context, and finish once from one goroutine. Independent concurrent work owns
+  separate operations; do not add a parallel accumulator or lifecycle registry.
+- Expected decisions enrich the event. Standalone logs describe process
+  lifecycle or exceptional diagnostics. Handler failures attach a safe code and
+  error type rather than raw dependency errors containing user input.
+- Card titles/descriptions and unrestricted payloads are not telemetry fields.
+- Metrics cover HTTP and database-pool behavior. Labels use bounded method,
+  route pattern, status, and outcome; never usernames, card IDs, raw paths/errors.
+- Balance active/completed accounting. Initialization/export fails open;
+  queues, timeouts, and shutdown flushing remain bounded.
+- Use library in-memory sinks for precise assertions. Public integration tests
+  verify safe logs, correlation, OTLP delivery/failure, and shutdown behavior.
+  The optional Collector example is in `deploy/observability`.

@@ -1,7 +1,7 @@
 # Serega
 
-A small shared Kanban board and an agent-ready project template, adapted from an
-actual clone of Akio Main. One board, three columns, individual accounts.
+A standalone project template with a small shared Kanban board as its working
+example. One board, three columns, individual accounts.
 
 Create cards with a title and description, edit them, move them between **To do**,
 **Doing**, and **Done**, and delete them with confirmation. Every signed-in user
@@ -49,9 +49,9 @@ files. `SEREGA_COOKIE_SECURE=false` is for local HTTP development. Keep the defa
 ## Use as a template
 
 Choose **Use this template** on GitHub, or clone the repository into a new project.
-Read [AGENTS.md](AGENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and the detailed
-[Akio pattern audit](docs/AKIO_PATTERNS.md) first. Scoped `AGENTS.md` files explain
-ownership, examples, constraints, and verification at each meaningful boundary.
+Start with [AGENTS.md](AGENTS.md) for architecture and repository-wide rules,
+then read the scoped guides for the areas you change. Each guide adds only
+the ownership, examples, and constraints specific to its subtree.
 
 1. Rename the module/import prefix, package name, executable, environment prefix,
    cookie names, metric prefix, and product copy for the new project.
@@ -61,7 +61,7 @@ ownership, examples, constraints, and verification at each meaningful boundary.
    secure sessions/CSRF, immutable embedded UI, structured logs and metrics,
    database migrations, and reproducible verification.
 4. Remove components only when the new product has no corresponding concern.
-   Update the local agent rules and architecture with the actual decisions.
+   Update the affected `AGENTS.md` guides with the actual decisions.
 
 This is intentionally one service and one board. It omits organizations, projects,
 attachments, comments, due dates, drag ordering, background workers, and external
@@ -74,7 +74,7 @@ Install **golangci-lint v2.14.0**, then:
 
 ```sh
 make generate          # Go/TypeScript API, SQLC, production frontend
-make format            # gofmt + goimports from the inherited lint config
+make format            # gofmt + goimports from the lint config
 make check             # strict Go lint, vet, staticcheck, frontend checks
 make test              # Go units + Vitest/React Testing Library
 make test-integration  # built-process and database tests, disposable PostgreSQL
