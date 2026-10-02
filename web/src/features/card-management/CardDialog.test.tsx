@@ -1,5 +1,5 @@
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueryClient } from '@app/providers/query-client';
 import { CardDialog } from '@features/card-management/CardDialog';
@@ -9,9 +9,12 @@ const api = vi.hoisted(() => ({ createCard: vi.fn(), updateCard: vi.fn(), listCa
 vi.mock('@shared/api/client', async (original) => ({ ...await original<typeof import('@shared/api/client')>(), api }));
 const card: Card = { id: 'card-1', title: 'First card', description: 'Original note', status: 'todo', version: 1, createdBy: { id: 'user-1', username: 'alex' }, updatedBy: { id: 'user-1', username: 'alex' }, createdAt: '2026-09-28T10:00:00Z', updatedAt: '2026-09-28T10:00:00Z' };
 const close = vi.fn();
+const saved = vi.fn();
 
 function show(existing?: Card, client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })) {
-  render(<QueryClientProvider client={client}><CardDialog card={existing} onClose={close} /></QueryClientProvider>);
+  client.getQueryCache().build(client, { queryKey: ['cards'] });
+  render(<QueryClientProvider client={client}><CardDialog card={existing} onClose={close} onSaved={saved} /></QueryClientProvider>);
+  return client;
 }
 afterEach(() => { cleanup(); onlineManager.setOnline(true); });
 beforeEach(() => { vi.resetAllMocks(); });
@@ -19,7 +22,7 @@ beforeEach(() => { vi.resetAllMocks(); });
 describe('card editing', () => {
   it('validates a required title and submits a trimmed new card', async () => {
     api.createCard.mockResolvedValue(card);
-    show();
+    const client = show();
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create card' }));
     expect(await screen.findByText('Title is required.')).toBeInTheDocument();
@@ -29,6 +32,8 @@ describe('card editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create card' }));
     await waitFor(() => expect(api.createCard).toHaveBeenCalledWith({ title: 'First card', description: 'A note\nwith whitespace' }));
     await waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(saved).toHaveBeenCalledExactlyOnceWith(card);
+    expect(client.getQueryData(['cards'])).toEqual({ cards: [card] });
   });
 
   it('reports offline writes immediately and keeps the draft editable instead of queuing it', async () => {
@@ -44,6 +49,7 @@ describe('card editing', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Create card' })).toBeEnabled();
     expect(close).not.toHaveBeenCalled();
+    expect(saved).not.toHaveBeenCalled();
   });
 
   it('keeps drafts after server failure and shows mapped field errors', async () => {
@@ -65,6 +71,7 @@ describe('card editing', () => {
     expect(await screen.findByText(/Someone changed this card/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
     expect(screen.getByLabelText(/Title/)).toHaveValue('My draft');
+    expect(saved).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Review latest' }));
     expect(await screen.findByText('Teammate update')).toBeInTheDocument();
     expect(screen.getByLabelText(/Title/)).toHaveValue('My draft');
@@ -80,5 +87,23 @@ describe('card editing', () => {
     expect(await screen.findByText(/This card was deleted/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Title/)).toHaveValue('My draft');
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+
+  it.each(['cleared', 'replaced'] as const)('ignores a delayed save after the session card cache is %s', async (change) => {
+    let finishSave!: (saved: Card) => void;
+    api.updateCard.mockImplementation(() => new Promise<Card>((resolve) => { finishSave = resolve; }));
+    const client = show(card);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(api.updateCard).toHaveBeenCalledOnce());
+    const nextSessionCards = { cards: [{ ...card, id: 'another-card', title: 'Another session card' }] };
+    act(() => {
+      client.clear();
+      if (change === 'replaced') client.setQueryData(['cards'], nextSessionCards);
+    });
+    await act(async () => { finishSave({ ...card, status: 'done', version: 2 }); });
+
+    expect(client.getQueryData(['cards'])).toEqual(change === 'replaced' ? nextSessionCards : undefined);
+    expect(saved).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
   });
 });

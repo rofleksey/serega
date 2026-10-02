@@ -4,11 +4,12 @@ import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { cardStatuses } from '@entities/card/status';
+import { captureCardCache, reconcileSavedCard } from '@entities/card/cache';
 import { cardFormDefaults, cardFormSchema, type CardFormValues } from '@features/card-management/form-schemas';
 import { api, apiFormErrors, ApiRequestError, type Card } from '@shared/api/client';
 import { formatDateTime } from '@shared/lib/time';
 
-export function CardDialog({ card, onClose }: { card?: Card; onClose: () => void }) {
+export function CardDialog({ card, onClose, onSaved }: { card?: Card; onClose: () => void; onSaved?: (card: Card) => void }) {
   const client = useQueryClient();
   const [base, setBase] = useState(card);
   const [reviewed, setReviewed] = useState(false);
@@ -18,7 +19,8 @@ export function CardDialog({ card, onClose }: { card?: Card; onClose: () => void
   const save = useMutation({ mutationFn: (values: CardFormValues) => base
     ? api.updateCard(base.id, { ...values, version: base.version })
     : api.createCard({ title: values.title, description: values.description }),
-  onSuccess: async () => { await client.invalidateQueries({ queryKey: ['cards'] }); onClose(); },
+  onMutate: () => captureCardCache(client),
+  onSuccess: async (saved, _variables, scope) => { const latest = await reconcileSavedCard(client, saved, scope); if (!latest) return; onSaved?.(latest); onClose(); },
   onError: (error) => { if (error instanceof ApiRequestError && (error.code === 'card_conflict' || error.code === 'not_found')) void client.invalidateQueries({ queryKey: ['cards'] }); },
   });
   const conflict = save.error instanceof ApiRequestError && save.error.code === 'card_conflict';
@@ -49,14 +51,14 @@ export function CardDialog({ card, onClose }: { card?: Card; onClose: () => void
   const close = () => { if (!save.isPending && !reviewing) onClose(); };
   return <Dialog open onClose={close} fullWidth maxWidth="sm" aria-labelledby="card-dialog-title">
     <DialogTitle id="card-dialog-title">{card ? 'Edit card' : 'New card'}</DialogTitle>
-    <DialogContent><Stack component="form" id="card-form" onSubmit={form.handleSubmit((values) => { if (!save.isPending && !conflict && !removed && !reviewing) save.mutate(values); })} noValidate spacing={2.5} sx={{ pt: 1 }}>
+    <DialogContent><Stack component="form" id="card-form" onSubmit={form.handleSubmit((values) => { if (!save.isPending && !conflict && !removed && !reviewing) save.mutate(values); })} noValidate spacing={1.5} sx={{ pt: 1 }}>
       {conflict && <Alert severity="warning" action={<Button color="inherit" disabled={reviewing} onClick={() => { void reviewLatest(); }}>{reviewing ? 'Loading…' : 'Review latest'}</Button>}>Someone changed this card. Your draft is kept below. Review the latest version before saving again.</Alert>}
       {removed && <Alert severity="warning">This card was deleted. Your draft is kept below so you can copy it before closing.</Alert>}
       {save.error && !conflict && !removed && <Alert severity="error">{apiFormErrors(save.error).general}</Alert>}
       {reviewError instanceof Error && <Alert severity="error">{reviewError.message}</Alert>}
-      {reviewed && base && <Paper variant="outlined" sx={{ p: 2 }}><Stack spacing={1}><Typography variant="subtitle2">Latest saved version</Typography><Typography sx={{ overflowWrap: 'anywhere' }}>{base.title}</Typography>{base.description && <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 180, overflow: 'auto' }}>{base.description}</Typography>}<Typography variant="caption" color="text.secondary">{cardStatuses.find((status) => status.value === base.status)?.label} · {base.updatedBy.username} · {formatDateTime(base.updatedAt)}</Typography><Typography variant="body2">Your draft is below. Saving applies it over this version.</Typography></Stack></Paper>}
-      <TextField autoFocus required label="Title" {...form.register('title')} error={Boolean(errors.title)} helperText={errors.title?.message ?? 'Keep it short and clear.'} disabled={save.isPending} />
-      <TextField label="Description" multiline minRows={4} maxRows={12} {...form.register('description')} error={Boolean(errors.description)} helperText={errors.description?.message ?? 'Optional details, notes, or a next step.'} disabled={save.isPending} />
+      {reviewed && base && <Paper variant="outlined" sx={{ p: 1.5 }}><Stack spacing={1}><Typography variant="subtitle2">Latest saved version</Typography><Typography sx={{ overflowWrap: 'anywhere' }}>{base.title}</Typography>{base.description && <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 180, overflow: 'auto' }}>{base.description}</Typography>}<Typography variant="caption" color="text.secondary">{cardStatuses.find((status) => status.value === base.status)?.label} · {base.updatedBy.username} · {formatDateTime(base.updatedAt)}</Typography><Typography variant="body2">Your draft is below. Saving applies it over this version.</Typography></Stack></Paper>}
+      <TextField autoFocus required label="Title" {...form.register('title')} error={Boolean(errors.title)} helperText={errors.title?.message} disabled={save.isPending} />
+      <TextField label="Description (optional)" multiline minRows={3} maxRows={12} {...form.register('description')} error={Boolean(errors.description)} helperText={errors.description?.message} disabled={save.isPending} />
       {card && <Controller control={form.control} name="status" render={({ field }) => <TextField select label="Status" {...field} disabled={save.isPending} error={Boolean(errors.status)} helperText={errors.status?.message}>{cardStatuses.map((status) => <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>)}</TextField>} />}
       {card && <Typography variant="caption" color="text.secondary">Created by {card.createdBy.username} · {formatDateTime(card.createdAt)}</Typography>}
     </Stack></DialogContent>

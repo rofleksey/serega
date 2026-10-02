@@ -10,7 +10,7 @@ export function ConfirmationDialog({ open, title, target, effect, confirmLabel, 
         {safetyNote && <Alert severity="info">{safetyNote}</Alert>}
       </Stack>
     </DialogContent>
-    <DialogActions sx={{ px: 3, pb: 2.5 }}>
+    <DialogActions sx={{ px: 2.5, pb: 2 }}>
       <Button onClick={onCancel} disabled={pending}>Cancel</Button>
       <Button variant="contained" color={confirmColor} onClick={onConfirm} disabled={pending}>{pending ? 'Working…' : confirmLabel}</Button>
     </DialogActions>

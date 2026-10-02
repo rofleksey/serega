@@ -10,6 +10,10 @@ and on window focus. Version checks reject stale edits and deletes, so concurren
 work is never silently overwritten. PostgreSQL persists accounts, sessions, and
 cards.
 
+The interface is dark-only and compact. Desktop shows all three columns;
+phones use status tabs with counts. Each card keeps a keyboard-operable status
+selector, and successful moves or saves open the destination column on mobile.
+
 ## Start locally
 
 Requirements: Go **1.27.1**, Node.js **24.21.0** (`.nvmrc`), Docker with Compose,
