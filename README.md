@@ -54,8 +54,9 @@ files. `SEREGA_COOKIE_SECURE=false` is for local HTTP development. Keep the defa
 
 Choose **Use this template** on GitHub, or clone the repository into a new project.
 Start with [AGENTS.md](AGENTS.md) for architecture and repository-wide rules,
-then read the scoped guides for the areas you change. Each guide adds only
-the ownership, examples, and constraints specific to its subtree.
+then read the scoped guides and the [domain documents](docs/README.md) for the
+areas you change. Each guide adds only the ownership, examples, and constraints
+specific to its subtree.
 
 1. Rename the module/import prefix, package name, executable, environment prefix,
    cookie names, metric prefix, and product copy for the new project.
@@ -65,7 +66,9 @@ the ownership, examples, and constraints specific to its subtree.
    secure sessions/CSRF, immutable embedded UI, structured logs and metrics,
    database migrations, and reproducible verification.
 4. Remove components only when the new product has no corresponding concern.
-   Update the affected `AGENTS.md` guides with the actual decisions.
+   Replace the example [board policy](docs/board.md) with the new product's
+   documents, and update the affected `AGENTS.md` guides with the actual
+   decisions.
 
 This is intentionally one service and one board. It omits organizations, projects,
 attachments, comments, due dates, drag ordering, background workers, and external
@@ -78,17 +81,19 @@ Install **golangci-lint v2.14.0**, then:
 
 ```sh
 make generate          # Go/TypeScript API, SQLC, production frontend
-make format            # gofmt + goimports from the lint config
+make format            # gofmt + goimports and web formatting
 make check             # strict Go lint, vet, staticcheck, frontend checks
 make test              # Go units + Vitest/React Testing Library
 make test-integration  # built-process and database tests, disposable PostgreSQL
+make smoke             # build the production image and run the container smoke test
 ```
 
-CI runs the same generation, lint, static analysis, unit tests, race checks, build,
-and isolated integration tests. No private repository checkout, deploy key, or
-production service is required. Generated files and embedded build assets are
-ignored and regenerated from tracked sources. Go tools require the frontend
-build first; `make generate`, `make build`, `make check`, and `make test` arrange it.
+CI runs the same generation, lint, static analysis, unit tests, race checks,
+build, isolated integration tests, and production image smoke test. No private
+repository checkout, deploy key, or production service is required. Generated
+files and embedded build assets are ignored and regenerated from tracked
+sources. Go tools require the frontend build first; `make generate`, `make
+build`, `make check`, and `make test` arrange it.
 
 ## Configuration and operations
 

@@ -1,10 +1,11 @@
-.PHONY: format frontend generate lint check test test-integration test-integration-postgres test-integration-application build release
+.PHONY: format frontend generate lint check test test-integration test-integration-postgres test-integration-application smoke build release
 
-GO_FILES := $(shell find cmd internal test -name '*.go' -not -path '*/generated/*' -not -name '*.gen.go')
+GO_FILES := $(shell git ls-files '*.go')
 GO_PACKAGES := ./cmd/... ./internal/...
 
 format:
 	golangci-lint fmt
+	npm --prefix web run format
 
 frontend:
 	cd web && npm run generate && npm run build
@@ -37,6 +38,10 @@ test-integration-postgres: generate
 
 test-integration-application: build
 	go test -tags=integration -count=1 ./test/integration/application
+
+smoke: generate
+	docker build -f deploy/production/Dockerfile -t serega:ci .
+	python3 test/container/smoke.py serega:ci
 
 build: generate
 	go build -trimpath -o bin/serega ./cmd

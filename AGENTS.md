@@ -17,6 +17,7 @@ one only when a subtree needs substantial, distinct guidance.
 | Go package ownership and runtime | [internal/AGENTS.md](internal/AGENTS.md) |
 | HTTP contract | [api/AGENTS.md](api/AGENTS.md) |
 | Frontend layers and interaction | [web/AGENTS.md](web/AGENTS.md) |
+| Domain policy documents | [docs/README.md](docs/README.md) |
 | Integration testing | [test/AGENTS.md](test/AGENTS.md) |
 | Containers and telemetry deployment | [deploy/AGENTS.md](deploy/AGENTS.md) |
 | CI | [.github/workflows/AGENTS.md](.github/workflows/AGENTS.md) |
@@ -80,6 +81,9 @@ Go/frontend tests, and a production build. See the README for commands.
 - Keep golangci-lint v2 with `linters.default: none`, explicitly enabled linters,
   and gofmt/goimports. Preserve the configured suite; keep exclusions narrow and
   explained, and finish without findings.
+- Keep `make smoke` green for changes that affect the image, embedded assets,
+  migrations, authentication, or the card contract; it exercises the built
+  image with disposable PostgreSQL and synthetic data.
 - Keep meaningful unit tests beside the behavior they cover; avoid tests that
   duplicate trivial implementation. `test/` owns integration coverage.
 - Run integration coverage for authentication, persistence, migration,
@@ -100,5 +104,6 @@ Keep a small working example of each mechanism the new product still uses.
 
 Rename module/import prefixes, package/executable names, environment variables,
 cookies, browser events, metrics, images, and product copy consistently. Replace
-domain policy deliberately, remove unused vocabulary/mechanisms, and update the
-contracts, schemas, tests, and affected guides together.
+domain policy deliberately, including the example [domain documents](docs/README.md),
+remove unused vocabulary/mechanisms, and update the contracts, schemas, tests,
+and affected guides together.

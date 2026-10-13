@@ -6,6 +6,12 @@ owns dependency lifecycle by default; pin container images and bound startup
 and teardown. Use deterministic assertions with deadlines instead of arbitrary
 sleeps; keep load tests separate and fixtures minimal and synthetic.
 
+`make smoke` exercises the built production image (`test/container/smoke.py`)
+with a disposable PostgreSQL container: explicit migration, non-root read-only
+runtime, CLI provisioning, login, card creation, a stale-version conflict, and
+embedded asset caching. Keep it deterministic and synthetic; the CI verify job
+runs it before any image publication.
+
 ## Application boundary
 
 - `integration/application` interacts only through CLI, HTTP, process, logs, and

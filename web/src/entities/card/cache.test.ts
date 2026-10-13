@@ -3,7 +3,17 @@ import { describe, expect, it } from 'vitest';
 import type { Card } from '@shared/api/client';
 import { captureCardCache, reconcileSavedCard } from './cache';
 
-const card: Card = { id: 'card-b', title: 'First card', description: '', status: 'todo', version: 1, createdBy: { id: 'user-1', username: 'alex' }, updatedBy: { id: 'user-1', username: 'alex' }, createdAt: '2026-09-28T10:00:00Z', updatedAt: '2026-09-28T10:00:00Z' };
+const card: Card = {
+  id: 'card-b',
+  title: 'First card',
+  description: '',
+  status: 'todo',
+  version: 1,
+  createdBy: { id: 'user-1', username: 'alex' },
+  updatedBy: { id: 'user-1', username: 'alex' },
+  createdAt: '2026-09-28T10:00:00Z',
+  updatedAt: '2026-09-28T10:00:00Z',
+};
 
 describe('saved card reconciliation', () => {
   it('inserts missing cards in server creation order with IDs breaking timestamp ties', async () => {
@@ -12,11 +22,17 @@ describe('saved card reconciliation', () => {
     const oldest = { ...card, id: 'oldest', createdAt: '2026-09-27T10:00:00Z' };
     const tiedBefore = { ...card, id: 'card-a' };
     const tiedAfter = { ...card, id: 'card-c' };
-    client.setQueryData(['cards'], { cards: [newest, tiedBefore, tiedAfter, oldest], extra: 'retained' });
+    client.setQueryData(['cards'], {
+      cards: [newest, tiedBefore, tiedAfter, oldest],
+      extra: 'retained',
+    });
 
     await reconcileSavedCard(client, card, captureCardCache(client));
 
-    expect(client.getQueryData(['cards'])).toEqual({ cards: [newest, tiedBefore, card, tiedAfter, oldest], extra: 'retained' });
+    expect(client.getQueryData(['cards'])).toEqual({
+      cards: [newest, tiedBefore, card, tiedAfter, oldest],
+      extra: 'retained',
+    });
   });
 
   it('retains a newer cached version when an earlier mutation response arrives late', async () => {
@@ -24,7 +40,11 @@ describe('saved card reconciliation', () => {
     const newer = { ...card, title: 'Latest teammate update', status: 'done' as const, version: 3 };
     client.setQueryData(['cards'], { cards: [newer] });
 
-    const effective = await reconcileSavedCard(client, { ...card, status: 'doing', version: 2 }, captureCardCache(client));
+    const effective = await reconcileSavedCard(
+      client,
+      { ...card, status: 'doing', version: 2 },
+      captureCardCache(client),
+    );
 
     expect(effective).toEqual(newer);
     expect(client.getQueryData(['cards'])).toEqual({ cards: [newer] });
@@ -37,7 +57,10 @@ describe('saved card reconciliation', () => {
       queryKey: ['cards'],
       initialData: { cards: [card] },
       staleTime: Infinity,
-      queryFn: () => new Promise<{ cards: Card[] }>((resolve) => { finishRefresh = resolve; }),
+      queryFn: () =>
+        new Promise<{ cards: Card[] }>((resolve) => {
+          finishRefresh = resolve;
+        }),
     });
     const unsubscribe = observer.subscribe(() => {});
     const result = reconcileSavedCard(client, { ...card, version: 2 }, captureCardCache(client));

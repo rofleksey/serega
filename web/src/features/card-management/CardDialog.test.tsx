@@ -6,18 +6,45 @@ import { CardDialog } from '@features/card-management/CardDialog';
 import { ApiRequestError, type Card } from '@shared/api/client';
 
 const api = vi.hoisted(() => ({ createCard: vi.fn(), updateCard: vi.fn(), listCards: vi.fn() }));
-vi.mock('@shared/api/client', async (original) => ({ ...await original<typeof import('@shared/api/client')>(), api }));
-const card: Card = { id: 'card-1', title: 'First card', description: 'Original note', status: 'todo', version: 1, createdBy: { id: 'user-1', username: 'alex' }, updatedBy: { id: 'user-1', username: 'alex' }, createdAt: '2026-09-28T10:00:00Z', updatedAt: '2026-09-28T10:00:00Z' };
+vi.mock('@shared/api/client', async (original) => ({
+  ...(await original<typeof import('@shared/api/client')>()),
+  api,
+}));
+const card: Card = {
+  id: 'card-1',
+  title: 'First card',
+  description: 'Original note',
+  status: 'todo',
+  version: 1,
+  createdBy: { id: 'user-1', username: 'alex' },
+  updatedBy: { id: 'user-1', username: 'alex' },
+  createdAt: '2026-09-28T10:00:00Z',
+  updatedAt: '2026-09-28T10:00:00Z',
+};
 const close = vi.fn();
 const saved = vi.fn();
 
-function show(existing?: Card, client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })) {
+function show(
+  existing?: Card,
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  }),
+) {
   client.getQueryCache().build(client, { queryKey: ['cards'] });
-  render(<QueryClientProvider client={client}><CardDialog card={existing} onClose={close} onSaved={saved} /></QueryClientProvider>);
+  render(
+    <QueryClientProvider client={client}>
+      <CardDialog card={existing} onClose={close} onSaved={saved} />
+    </QueryClientProvider>,
+  );
   return client;
 }
-afterEach(() => { cleanup(); onlineManager.setOnline(true); });
-beforeEach(() => { vi.resetAllMocks(); });
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+});
+beforeEach(() => {
+  vi.resetAllMocks();
+});
 
 describe('card editing', () => {
   it('validates a required title and submits a trimmed new card', async () => {
@@ -28,9 +55,16 @@ describe('card editing', () => {
     expect(await screen.findByText('Title is required.')).toBeInTheDocument();
     expect(api.createCard).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: '  First card  ' } });
-    fireEvent.change(screen.getByLabelText(/Description/), { target: { value: 'A note\nwith whitespace' } });
+    fireEvent.change(screen.getByLabelText(/Description/), {
+      target: { value: 'A note\nwith whitespace' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Create card' }));
-    await waitFor(() => expect(api.createCard).toHaveBeenCalledWith({ title: 'First card', description: 'A note\nwith whitespace' }));
+    await waitFor(() =>
+      expect(api.createCard).toHaveBeenCalledWith({
+        title: 'First card',
+        description: 'A note\nwith whitespace',
+      }),
+    );
     await waitFor(() => expect(close).toHaveBeenCalledOnce());
     expect(saved).toHaveBeenCalledExactlyOnceWith(card);
     expect(client.getQueryData(['cards'])).toEqual({ cards: [card] });
@@ -53,7 +87,14 @@ describe('card editing', () => {
   });
 
   it('keeps drafts after server failure and shows mapped field errors', async () => {
-    api.updateCard.mockRejectedValue(new ApiRequestError({ code: 'validation_failed', message: 'Review the title.', requestId: 'r-1', fields: [{ field: 'title', message: 'Title rejected.' }] }));
+    api.updateCard.mockRejectedValue(
+      new ApiRequestError({
+        code: 'validation_failed',
+        message: 'Review the title.',
+        requestId: 'r-1',
+        fields: [{ field: 'title', message: 'Title rejected.' }],
+      }),
+    );
     show(card);
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'My draft' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -63,8 +104,25 @@ describe('card editing', () => {
   });
 
   it('retains the draft through a version conflict and requires review before saving again', async () => {
-    api.updateCard.mockRejectedValueOnce(new ApiRequestError({ code: 'card_conflict', message: 'The card changed.', requestId: 'r-1' })).mockResolvedValue({ ...card, version: 3 });
-    api.listCards.mockResolvedValue({ cards: [{ ...card, title: 'Teammate update', version: 2, updatedBy: { id: 'user-2', username: 'sam' } }] });
+    api.updateCard
+      .mockRejectedValueOnce(
+        new ApiRequestError({
+          code: 'card_conflict',
+          message: 'The card changed.',
+          requestId: 'r-1',
+        }),
+      )
+      .mockResolvedValue({ ...card, version: 3 });
+    api.listCards.mockResolvedValue({
+      cards: [
+        {
+          ...card,
+          title: 'Teammate update',
+          version: 2,
+          updatedBy: { id: 'user-2', username: 'sam' },
+        },
+      ],
+    });
     show(card);
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'My draft' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -76,11 +134,20 @@ describe('card editing', () => {
     expect(await screen.findByText('Teammate update')).toBeInTheDocument();
     expect(screen.getByLabelText(/Title/)).toHaveValue('My draft');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-    await waitFor(() => expect(api.updateCard).toHaveBeenLastCalledWith('card-1', { title: 'My draft', description: 'Original note', status: 'todo', version: 2 }));
+    await waitFor(() =>
+      expect(api.updateCard).toHaveBeenLastCalledWith('card-1', {
+        title: 'My draft',
+        description: 'Original note',
+        status: 'todo',
+        version: 2,
+      }),
+    );
   });
 
   it('keeps a deleted card draft available without allowing a stale save', async () => {
-    api.updateCard.mockRejectedValue(new ApiRequestError({ code: 'not_found', message: 'Card not found.', requestId: 'r-1' }));
+    api.updateCard.mockRejectedValue(
+      new ApiRequestError({ code: 'not_found', message: 'Card not found.', requestId: 'r-1' }),
+    );
     show(card);
     fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'My draft' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -89,21 +156,35 @@ describe('card editing', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
-  it.each(['cleared', 'replaced'] as const)('ignores a delayed save after the session card cache is %s', async (change) => {
-    let finishSave!: (saved: Card) => void;
-    api.updateCard.mockImplementation(() => new Promise<Card>((resolve) => { finishSave = resolve; }));
-    const client = show(card);
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-    await waitFor(() => expect(api.updateCard).toHaveBeenCalledOnce());
-    const nextSessionCards = { cards: [{ ...card, id: 'another-card', title: 'Another session card' }] };
-    act(() => {
-      client.clear();
-      if (change === 'replaced') client.setQueryData(['cards'], nextSessionCards);
-    });
-    await act(async () => { finishSave({ ...card, status: 'done', version: 2 }); });
+  it.each(['cleared', 'replaced'] as const)(
+    'ignores a delayed save after the session card cache is %s',
+    async (change) => {
+      let finishSave!: (saved: Card) => void;
+      api.updateCard.mockImplementation(
+        () =>
+          new Promise<Card>((resolve) => {
+            finishSave = resolve;
+          }),
+      );
+      const client = show(card);
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(api.updateCard).toHaveBeenCalledOnce());
+      const nextSessionCards = {
+        cards: [{ ...card, id: 'another-card', title: 'Another session card' }],
+      };
+      act(() => {
+        client.clear();
+        if (change === 'replaced') client.setQueryData(['cards'], nextSessionCards);
+      });
+      await act(async () => {
+        finishSave({ ...card, status: 'done', version: 2 });
+      });
 
-    expect(client.getQueryData(['cards'])).toEqual(change === 'replaced' ? nextSessionCards : undefined);
-    expect(saved).not.toHaveBeenCalled();
-    expect(close).not.toHaveBeenCalled();
-  });
+      expect(client.getQueryData(['cards'])).toEqual(
+        change === 'replaced' ? nextSessionCards : undefined,
+      );
+      expect(saved).not.toHaveBeenCalled();
+      expect(close).not.toHaveBeenCalled();
+    },
+  );
 });

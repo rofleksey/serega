@@ -9,15 +9,40 @@ import { ApiRequestError } from '@shared/api/client';
 import { SESSION_EXPIRED_EVENT } from '@shared/api/session-expiry';
 
 const api = vi.hoisted(() => ({ getCurrentUser: vi.fn(), login: vi.fn(), logout: vi.fn() }));
-vi.mock('@shared/api/client', async (original) => ({ ...await original<typeof import('@shared/api/client')>(), api }));
-afterEach(() => { cleanup(); vi.resetAllMocks(); });
+vi.mock('@shared/api/client', async (original) => ({
+  ...(await original<typeof import('@shared/api/client')>()),
+  api,
+}));
+afterEach(() => {
+  cleanup();
+  vi.resetAllMocks();
+});
 
-function providers(children: React.ReactNode, entries = ['/'], client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })) {
-  return <QueryClientProvider client={client}><MemoryRouter initialEntries={entries}><UserProvider>{children}</UserProvider></MemoryRouter></QueryClientProvider>;
+function providers(
+  children: React.ReactNode,
+  entries = ['/'],
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  }),
+) {
+  return (
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={entries}>
+        <UserProvider>{children}</UserProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
 }
 
 function routes() {
-  return <Routes><Route path="login" element={<LoginPage />} /><Route element={<AppLayout />}><Route index element={<div>Board content</div>} /></Route></Routes>;
+  return (
+    <Routes>
+      <Route path="login" element={<LoginPage />} />
+      <Route element={<AppLayout />}>
+        <Route index element={<div>Board content</div>} />
+      </Route>
+    </Routes>
+  );
 }
 
 describe('responsive shell and login', () => {
@@ -41,7 +66,9 @@ describe('responsive shell and login', () => {
   });
 
   it('logs in and loads the current user before entering the board', async () => {
-    api.getCurrentUser.mockRejectedValueOnce(new Error('unauthorized')).mockResolvedValue({ id: 'user-1', username: 'alex' });
+    api.getCurrentUser
+      .mockRejectedValueOnce(new Error('unauthorized'))
+      .mockResolvedValue({ id: 'user-1', username: 'alex' });
     api.login.mockResolvedValue(undefined);
     render(providers(routes(), ['/login']));
     await waitFor(() => expect(api.getCurrentUser).toHaveBeenCalledOnce());
@@ -69,7 +96,9 @@ describe('responsive shell and login', () => {
     api.login.mockRejectedValue(new Error('Invalid username or password.'));
     render(providers(routes(), ['/login']));
     fireEvent.change(screen.getByLabelText(/Username/), { target: { value: 'alex' } });
-    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'incorrect-password' } });
+    fireEvent.change(screen.getByLabelText(/Password/), {
+      target: { value: 'incorrect-password' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Invalid username or password.')).toBeInTheDocument();
     expect(screen.getByLabelText(/Username/)).toHaveValue('alex');
@@ -104,8 +133,16 @@ describe('responsive shell and login', () => {
     client.setQueryData(['cards'], { cards: [{ id: 'card-1' }] });
     render(providers(routes(), ['/'], client));
     await screen.findByText('alex');
-    api.getCurrentUser.mockRejectedValue(new ApiRequestError({ code: 'unauthorized', message: 'Authentication is required.', requestId: 'r-1' }));
-    await act(async () => { await client.invalidateQueries({ queryKey: ['current-user'] }); });
+    api.getCurrentUser.mockRejectedValue(
+      new ApiRequestError({
+        code: 'unauthorized',
+        message: 'Authentication is required.',
+        requestId: 'r-1',
+      }),
+    );
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['current-user'] });
+    });
     expect(await screen.findByText(/session expired/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(client.getQueryData(['cards'])).toBeUndefined();

@@ -11,10 +11,30 @@ const colors: Record<Tone, string> = {
   error: 'error.main',
 };
 
-export function StatusIndicator({ label, tone = 'neutral', detail }: { label: string; tone?: Tone; detail?: string }) {
-  return <Stack component="span" direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
-    <FiberManualRecordIcon aria-hidden fontSize="inherit" sx={{ color: colors[tone], flexShrink: 0 }} />
-    <Typography component="span" variant="body2" fontWeight={650} noWrap>{label}</Typography>
-    {detail && <Typography component="span" variant="body2" color="text.secondary" noWrap>{detail}</Typography>}
-  </Stack>;
+export function StatusIndicator({
+  label,
+  tone = 'neutral',
+  detail,
+}: {
+  label: string;
+  tone?: Tone;
+  detail?: string;
+}) {
+  return (
+    <Stack component="span" direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+      <FiberManualRecordIcon
+        aria-hidden
+        fontSize="inherit"
+        sx={{ color: colors[tone], flexShrink: 0 }}
+      />
+      <Typography component="span" variant="body2" fontWeight={650} noWrap>
+        {label}
+      </Typography>
+      {detail && (
+        <Typography component="span" variant="body2" color="text.secondary" noWrap>
+          {detail}
+        </Typography>
+      )}
+    </Stack>
+  );
 }

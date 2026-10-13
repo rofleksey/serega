@@ -17,9 +17,16 @@ export class ApiRequestError extends Error {
   }
 }
 
-export function apiFormErrors(error: unknown): { general?: string; fields: Record<string, string> } {
-  if (!(error instanceof ApiRequestError)) return { general: error instanceof Error ? error.message : undefined, fields: {} };
-  return { general: error.message, fields: Object.fromEntries(error.fields.map((field) => [field.field, field.message])) };
+export function apiFormErrors(error: unknown): {
+  general?: string;
+  fields: Record<string, string>;
+} {
+  if (!(error instanceof ApiRequestError))
+    return { general: error instanceof Error ? error.message : undefined, fields: {} };
+  return {
+    general: error.message,
+    fields: Object.fromEntries(error.fields.map((field) => [field.field, field.message])),
+  };
 }
 
 export const apiFetch: typeof fetch = async (input, init) => {
@@ -40,7 +47,9 @@ export function requestError(error: unknown): ApiRequestError {
   return new ApiRequestError(response?.error);
 }
 
-export async function unwrap<T>(request: Promise<{ data?: T; error?: unknown; response: Response }>): Promise<T> {
+export async function unwrap<T>(
+  request: Promise<{ data?: T; error?: unknown; response: Response }>,
+): Promise<T> {
   const { data, error, response } = await request;
   if (!response.ok || error !== undefined) throw requestError(error);
   return data as T;
@@ -54,7 +63,9 @@ export class CsrfStore {
     return this.#token!;
   }
 
-  clear(): void { this.#token = undefined; }
+  clear(): void {
+    this.#token = undefined;
+  }
 }
 
 export const csrf = new CsrfStore();

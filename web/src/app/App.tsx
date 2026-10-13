@@ -11,28 +11,38 @@ import { theme } from '@app/theme';
 import { LoginPage } from '@pages/login/LoginPage';
 import { LoadingState } from '@shared/ui/async-states';
 
-const BoardPage = lazy(() => import('@pages/board/BoardPage').then(({ BoardPage }) => ({ default: BoardPage })));
+const BoardPage = lazy(() =>
+  import('@pages/board/BoardPage').then(({ BoardPage }) => ({ default: BoardPage })),
+);
 const queryClient = createQueryClient();
 
 export function App() {
-  return <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <FeedbackProvider>
-        <BrowserRouter>
-          <UserProvider>
-            <Suspense fallback={<LoadingState label="Loading page" />}>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route element={<RequireUser><AppLayout /></RequireUser>}>
-                  <Route index element={<BoardPage />} />
-                </Route>
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-          </UserProvider>
-        </BrowserRouter>
-      </FeedbackProvider>
-    </ThemeProvider>
-  </QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <FeedbackProvider>
+          <BrowserRouter>
+            <UserProvider>
+              <Suspense fallback={<LoadingState label="Loading page" />}>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route
+                    element={
+                      <RequireUser>
+                        <AppLayout />
+                      </RequireUser>
+                    }
+                  >
+                    <Route index element={<BoardPage />} />
+                  </Route>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+            </UserProvider>
+          </BrowserRouter>
+        </FeedbackProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 }

@@ -14,7 +14,15 @@ afterEach(() => cleanup());
 
 describe('shared UI primitives', () => {
   it('renders page hierarchy and text-backed status', () => {
-    render(<MemoryRouter><PageHeader title="Board" description="Shared tasks" crumbs={[{ label: 'Home', to: '/' }, { label: 'Board' }]} /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <PageHeader
+          title="Board"
+          description="Shared tasks"
+          crumbs={[{ label: 'Home', to: '/' }, { label: 'Board' }]}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole('heading', { name: 'Board' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
     render(<StatusIndicator label="Online" tone="success" detail="Inventory current" />);
@@ -26,7 +34,13 @@ describe('shared UI primitives', () => {
     const retry = vi.fn();
     const { rerender } = render(<LoadingState label="Loading board" />);
     expect(screen.getByRole('status', { name: 'Loading board' })).toBeInTheDocument();
-    rerender(<EmptyState title="No cards" description="Add a card to begin." action={<Button>Add card</Button>} />);
+    rerender(
+      <EmptyState
+        title="No cards"
+        description="Add a card to begin."
+        action={<Button>Add card</Button>}
+      />,
+    );
     expect(screen.getByText('No cards')).toBeInTheDocument();
     rerender(<RecoverableError error={new Error('Connection lost')} onRetry={retry} />);
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -36,7 +50,18 @@ describe('shared UI primitives', () => {
   it('keeps confirmation targets explicit and cancelable', () => {
     const confirm = vi.fn();
     const cancel = vi.fn();
-    render(<ConfirmationDialog open title="Delete card?" target="Write the guide" effect="Removes this card for everyone." confirmLabel="Delete card" safetyNote="This action cannot be undone." onCancel={cancel} onConfirm={confirm} />);
+    render(
+      <ConfirmationDialog
+        open
+        title="Delete card?"
+        target="Write the guide"
+        effect="Removes this card for everyone."
+        confirmLabel="Delete card"
+        safetyNote="This action cannot be undone."
+        onCancel={cancel}
+        onConfirm={confirm}
+      />,
+    );
     expect(screen.getByText(/Write the guide/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete card' }));
     expect(confirm).toHaveBeenCalledOnce();
@@ -46,7 +71,9 @@ describe('shared UI primitives', () => {
 
   it('labels overflow actions and invokes the selected action', () => {
     const select = vi.fn();
-    render(<OverflowActions label="Card actions" actions={[{ label: 'Edit card', onSelect: select }]} />);
+    render(
+      <OverflowActions label="Card actions" actions={[{ label: 'Edit card', onSelect: select }]} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Card actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit card' }));
     expect(select).toHaveBeenCalledOnce();
@@ -55,9 +82,18 @@ describe('shared UI primitives', () => {
   it('announces transient success and error feedback', () => {
     function Harness() {
       const feedback = useFeedback();
-      return <><Button onClick={() => feedback.showSuccess('Saved')}>Success</Button><Button onClick={() => feedback.showError('Failed')}>Error</Button></>;
+      return (
+        <>
+          <Button onClick={() => feedback.showSuccess('Saved')}>Success</Button>
+          <Button onClick={() => feedback.showError('Failed')}>Error</Button>
+        </>
+      );
     }
-    render(<FeedbackProvider><Harness /></FeedbackProvider>);
+    render(
+      <FeedbackProvider>
+        <Harness />
+      </FeedbackProvider>,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Success' }));
     expect(screen.getByText('Saved')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Error' }));
@@ -67,7 +103,17 @@ describe('shared UI primitives', () => {
   it('allows callers to control an open confirmation dialog', async () => {
     function Harness() {
       const [open, setOpen] = useState(true);
-      return <ConfirmationDialog open={open} title="Remove?" target="card" effect="Removes the card." confirmLabel="Remove" onCancel={() => setOpen(false)} onConfirm={() => setOpen(false)} />;
+      return (
+        <ConfirmationDialog
+          open={open}
+          title="Remove?"
+          target="card"
+          effect="Removes the card."
+          confirmLabel="Remove"
+          onCancel={() => setOpen(false)}
+          onConfirm={() => setOpen(false)}
+        />
+      );
     }
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
