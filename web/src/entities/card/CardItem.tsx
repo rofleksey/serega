@@ -1,4 +1,4 @@
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Box, Button, Paper, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { cardStatuses } from '@entities/card/status';
@@ -27,7 +27,7 @@ export function CardItem({
       sx={{ p: 1.25, bgcolor: 'background.paper', minWidth: 0 }}
     >
       <Stack spacing={0.75}>
-        <Stack direction="row" spacing={0.5} alignItems="flex-start">
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'flex-start' }}>
           <Button
             onClick={onEdit}
             disabled={pending}
@@ -46,8 +46,7 @@ export function CardItem({
               id={`card-title-${card.id}`}
               component="h3"
               variant="body2"
-              fontWeight={650}
-              sx={{ overflowWrap: 'anywhere', lineHeight: 1.4 }}
+              sx={{ overflowWrap: 'anywhere', lineHeight: 1.4, fontWeight: 650 }}
             >
               {card.title}
             </Typography>
@@ -64,7 +63,7 @@ export function CardItem({
                 },
                 {
                   label: 'Delete card',
-                  icon: <DeleteOutlineIcon fontSize="small" />,
+                  icon: <DeleteOutlinedIcon fontSize="small" />,
                   danger: true,
                   disabled: pending,
                   onSelect: onDelete,
@@ -89,7 +88,11 @@ export function CardItem({
             {card.description}
           </Typography>
         )}
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <Tooltip
             title={`Created by ${card.createdBy.username} · ${formatDateTime(card.createdAt)}. Updated by ${card.updatedBy.username} · ${formatDateTime(card.updatedAt)}.`}
           >

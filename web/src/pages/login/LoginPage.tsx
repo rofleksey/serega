@@ -47,7 +47,7 @@ export function LoginPage() {
       <Paper component="form" onSubmit={submit} variant="outlined" sx={{ p: { xs: 2.5, sm: 3 } }}>
         <Stack spacing={2}>
           <Box>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.75 }}>
               <Box
                 aria-hidden
                 sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }}

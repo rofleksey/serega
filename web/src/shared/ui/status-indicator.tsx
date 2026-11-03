@@ -21,13 +21,18 @@ export function StatusIndicator({
   detail?: string;
 }) {
   return (
-    <Stack component="span" direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+    <Stack
+      component="span"
+      direction="row"
+      spacing={0.75}
+      sx={{ alignItems: 'center', minWidth: 0 }}
+    >
       <FiberManualRecordIcon
         aria-hidden
         fontSize="inherit"
         sx={{ color: colors[tone], flexShrink: 0 }}
       />
-      <Typography component="span" variant="body2" fontWeight={650} noWrap>
+      <Typography component="span" variant="body2" sx={{ fontWeight: 650 }} noWrap>
         {label}
       </Typography>
       {detail && (

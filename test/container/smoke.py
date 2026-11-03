@@ -37,7 +37,7 @@ def wait(check, message, seconds=90):
 
 try:
     docker("network", "create", network)
-    docker("run", "-d", "--name", database, "--network", network, "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=serega", "postgres:17.6-bookworm")
+    docker("run", "-d", "--name", database, "--network", network, "-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_DB=serega", "postgres:17.6-trixie")
     wait(lambda: docker("exec", database, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"), "PostgreSQL did not start")
     env = ["-e", f"DATABASE_URL=postgres://postgres@{database}:5432/serega?sslmode=disable", "-e", "SEREGA_COOKIE_SECURE=false", "-e", "OTEL_METRICS_EXPORTER=none"]
     common = ["--network", network, "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", *env]

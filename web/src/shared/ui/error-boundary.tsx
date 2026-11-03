@@ -7,14 +7,14 @@ type State = { failed: boolean };
 export function UnexpectedError({ section, onRetry }: { section?: string; onRetry?: () => void }) {
   return (
     <Box role="alert" sx={{ p: 3, maxWidth: 560, mx: 'auto' }}>
-      <Stack gap={1.5}>
+      <Stack spacing={1.5}>
         <Typography component="h1" variant="h6">
           Something went wrong
         </Typography>
         <Typography color="text.secondary">
           {section ? `${section} could not be displayed.` : 'This page could not be displayed.'}
         </Typography>
-        <Stack direction="row" gap={1}>
+        <Stack direction="row" spacing={1}>
           {onRetry && (
             <Button variant="contained" onClick={onRetry}>
               Try again

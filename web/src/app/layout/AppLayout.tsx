@@ -44,8 +44,7 @@ export function AppLayout() {
           <Stack
             direction="row"
             spacing={1}
-            alignItems="center"
-            sx={{ flexGrow: 1, flexShrink: 0, minWidth: 0 }}
+            sx={{ alignItems: 'center', flexGrow: 1, flexShrink: 0, minWidth: 0 }}
           >
             <ViewKanbanOutlinedIcon color="primary" fontSize="small" />
             <Typography component="div" variant="h6">

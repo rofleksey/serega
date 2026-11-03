@@ -35,7 +35,7 @@ export function OverflowActions({
         anchorEl={anchor}
         open={Boolean(anchor)}
         onClose={close}
-        MenuListProps={{ 'aria-label': label }}
+        slotProps={{ list: { 'aria-label': label } }}
       >
         {actions.map((action) => (
           <MenuItem

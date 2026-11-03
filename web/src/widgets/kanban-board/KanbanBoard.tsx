@@ -100,14 +100,12 @@ export function KanbanBoard() {
         component="header"
         direction="row"
         spacing={1}
-        alignItems="center"
-        justifyContent="space-between"
+        sx={{ alignItems: 'center', justifyContent: 'space-between' }}
       >
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={{ xs: 0.25, sm: 1.5 }}
-          alignItems={{ sm: 'center' }}
-          sx={{ minWidth: 0 }}
+          sx={{ alignItems: { sm: 'center' }, minWidth: 0 }}
         >
           <Typography component="h1" variant="h4">
             Team board
@@ -120,7 +118,7 @@ export function KanbanBoard() {
             {syncState}
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
           <Tooltip title="Refresh board">
             <span>
               <IconButton
@@ -215,9 +213,8 @@ export function KanbanBoard() {
                         {!mobile && (
                           <Stack
                             direction="row"
-                            alignItems="center"
                             spacing={0.75}
-                            sx={{ px: 0.5, py: 0.25 }}
+                            sx={{ alignItems: 'center', px: 0.5, py: 0.25 }}
                           >
                             <Box
                               aria-hidden

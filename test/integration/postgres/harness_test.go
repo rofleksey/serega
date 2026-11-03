@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	if connectionString == "" {
 		var err error
 
-		container, err = testpostgres.Run(ctx, "postgres:17.6-bookworm",
+		container, err = testpostgres.Run(ctx, "postgres:17.6-trixie",
 			testpostgres.WithDatabase("postgres"),
 			testpostgres.WithUsername("serega"),
 			testpostgres.WithPassword("serega"),

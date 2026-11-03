@@ -54,15 +54,18 @@ export function PageHeader({
         direction="row"
         spacing={1}
         useFlexGap
-        flexWrap="wrap"
-        alignItems="center"
-        justifyContent="space-between"
+        sx={{ flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <Typography component="h1" variant="h4" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
           {title}
         </Typography>
         {actions && (
-          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
+          <Stack
+            direction="row"
+            spacing={0.75}
+            useFlexGap
+            sx={{ flexWrap: 'wrap', alignItems: 'center' }}
+          >
             {actions}
           </Stack>
         )}

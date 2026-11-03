@@ -87,7 +87,7 @@ func startApplication(t *testing.T) *applicationHarness {
 
 	ctx := context.Background()
 
-	container, err := testpostgres.Run(ctx, "postgres:17.6-bookworm",
+	container, err := testpostgres.Run(ctx, "postgres:17.6-trixie",
 		testpostgres.WithDatabase("serega"),
 		testpostgres.WithUsername("serega"),
 		testpostgres.WithPassword("serega"),

@@ -16,7 +16,7 @@ selector, and successful moves or saves open the destination column on mobile.
 
 ## Start locally
 
-Requirements: Go **1.27.1**, Node.js **24.21.0** (`.nvmrc`), Docker with Compose,
+Requirements: Go **1.27.3**, Node.js **26.13.0** (`.nvmrc`), Docker with Compose,
 and `make`. PostgreSQL **17.6** runs as a local dependency. The dependency lockfiles
 and Go tool declarations pin application libraries and generators.
 

@@ -1,4 +1,4 @@
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined';
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import { Alert, Box, Button, Skeleton, Stack, Typography } from '@mui/material';
 
@@ -51,7 +51,7 @@ export function RecoverableError({
   return (
     <Alert
       severity="error"
-      icon={<ErrorOutlineIcon />}
+      icon={<ErrorOutlinedIcon />}
       action={
         onRetry ? (
           <Button color="inherit" onClick={onRetry}>
@@ -60,7 +60,7 @@ export function RecoverableError({
         ) : undefined
       }
     >
-      <Typography fontWeight={700}>{title}</Typography>
+      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
       <Typography variant="body2">{message}</Typography>
     </Alert>
   );
